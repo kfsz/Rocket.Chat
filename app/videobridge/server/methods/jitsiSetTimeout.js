@@ -9,7 +9,7 @@ import { canSendMessage } from '../../../authorization/server';
 import { SystemLogger } from '../../../logger/server';
 
 Meteor.methods({
-	'jitsi:updateTimeout': (rid) => {
+	'jitsi:updateTimeout': (rid, customTimeout = null) => {
 		if (!Meteor.userId()) {
 			throw new Meteor.Error('error-invalid-user', 'Invalid user', { method: 'jitsi:updateTimeout' });
 		}
@@ -30,9 +30,11 @@ Meteor.methods({
 
 			const jitsiTimeout = room.jitsiTimeout && new Date(room.jitsiTimeout).getTime();
 
-			const nextTimeOut = new Date(currentTime + CONSTANTS.TIMEOUT);
+			const newTimeout = customTimeout || CONSTANTS.TIMEOUT;
 
-			if (!jitsiTimeout || currentTime > jitsiTimeout - CONSTANTS.TIMEOUT / 2) {
+			const nextTimeOut = new Date(currentTime + newTimeout);
+
+			if (!jitsiTimeout || customTimeout || currentTime > jitsiTimeout - CONSTANTS.TIMEOUT / 2) {
 				Rooms.setJitsiTimeout(rid, nextTimeOut);
 			}
 
@@ -48,7 +50,7 @@ Meteor.methods({
 				callbacks.run('afterSaveMessage', message, { ...room, jitsiTimeout: currentTime + CONSTANTS.TIMEOUT });
 			}
 
-			return jitsiTimeout || nextTimeOut;
+			return new Date(jitsiTimeout) || nextTimeOut;
 		} catch (error) {
 			SystemLogger.error('Error starting video call:', error);
 
